@@ -1,6 +1,9 @@
+import { useState } from 'react'
 import { Toaster } from '@/components/ui/sonner'
 import { AppShell } from '@/components/layout/AppShell'
 import { Dashboard } from '@/components/dashboard/Dashboard'
+import { RegistrationForm } from '@/components/registration/RegistrationForm'
+import { CheckInPage } from '@/components/checkin/CheckInPage'
 import { useApp } from '@/context/AppContext'
 import { seedIfNeeded } from '@/lib/seed'
 
@@ -27,8 +30,8 @@ function StubPage({ title }: { title: string }) {
 function PageRouter() {
   const { state } = useApp()
   switch (state.currentPage) {
-    case 'registration': return <StubPage title="工人实名制登记" />
-    case 'checkin':      return <StubPage title="考勤打卡" />
+    case 'registration': return <RegistrationForm />
+    case 'checkin':      return <CheckInPage />
     case 'attendance':   return <StubPage title="考勤记录" />
     case 'manager':      return <StubPage title="考勤数据统计" />
     default:             return <Dashboard />
@@ -36,16 +39,24 @@ function PageRouter() {
 }
 
 export default function App() {
-  if (!localStorage.getItem('checkin_seeded')) {
-    seedIfNeeded()
-    window.location.reload()
-    return null
-  }
+  // 同步预填充：在 useApp 之前写入 localStorage，确保 reducer 初始化时能读到
+  const [ready] = useState(() => {
+    if (!localStorage.getItem('checkin_seeded')) {
+      seedIfNeeded()
+    }
+    return true
+  })
 
   const { state, dispatch } = useApp()
 
-  // === 首次拦截：注册弹窗 ===
+  // === 首次拦截：无用户时 ===
   if (!state.currentUser) {
+    // 已点击"前往注册" → 展示迎新表单
+    if (state.currentPage === 'registration') {
+      return <RegistrationForm />
+    }
+
+    // 初始拦截弹窗
     return (
       <div className="min-h-screen flex items-center justify-center px-4"
            style={{
@@ -55,7 +66,6 @@ export default function App() {
            }}>
         <div className="rounded-[32px] shadow-2xl shadow-black/5 p-8 max-w-md w-full bg-white">
 
-          {/* 标题区 */}
           <h1 className="text-neutral-900 font-black text-3xl tracking-tighter leading-none">
             智慧工地
           </h1>
@@ -63,12 +73,10 @@ export default function App() {
             Smart Construction Management
           </p>
 
-          {/* 提示文案 */}
           <p className="text-[14px] text-neutral-600 font-medium leading-relaxed mt-5">
             施工安全第一，请先完善您的劳务实名制登记
           </p>
 
-          {/* 注册按钮 — 深炭黑 */}
           <button
             className="mt-6 w-full py-4 bg-neutral-900 text-white rounded-2xl text-lg font-bold
                        shadow-lg shadow-black/10

@@ -99,7 +99,7 @@ export function seedIfNeeded(): boolean {
   const state = {
     currentPage: 'home' as const,
     currentRole: 'worker' as const,
-    currentUser: workers[0],
+    currentUser: null, // 不预设有用户，强制走首次注册拦截
     workers,
     attendanceLogs: logs,
   };
