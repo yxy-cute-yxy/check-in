@@ -3,18 +3,17 @@ import { Header } from './Header';
 import { BackBar } from './BackBar';
 import { useApp } from '@/context/AppContext';
 
-interface Props {
-  children: ReactNode;
-}
+interface Props { children: ReactNode }
 
-// 移动端优先容器：桌面端居中 480px，移动端全屏
 export function AppShell({ children }: Props) {
   const { state } = useApp();
   const showHeader = state.currentPage === 'home';
 
   return (
-    <div className="min-h-screen bg-slate-50 flex justify-center">
-      <div className="w-full max-w-xl min-h-screen bg-white shadow-md flex flex-col relative">
+    <div className="min-h-screen flex justify-center px-0 md:px-4 md:py-6">
+      <div className="w-full max-w-xl min-h-screen bg-[#f4f7f4] flex flex-col
+                      md:min-h-0 md:rounded-[32px] md:shadow-[0_20px_60px_rgb(0,0,0,0.08)]
+                      overflow-hidden">
         {showHeader ? <Header /> : <BackBar />}
         <main className="flex-1 overflow-auto">{children}</main>
       </div>
