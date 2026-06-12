@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@theme {
+  --color-lime-500: #84cc16;
+  --color-emerald-500: #10b981;
+  --color-orange-500: #f97316;
+  --color-amber-500: #f59e0b;
+  --color-neutral-900: #171717;
+  --color-slate-50: #f8fafc;
+  --color-zinc-50: #fafafa;
+}
+
+body {
+  margin: 0;
+}
+
+#root {
+  min-height: 100svh;
+}
