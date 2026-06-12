@@ -119,3 +119,11 @@ export function generateAvatar(name: string): string {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="${color}" rx="16"/><text x="50" y="68" text-anchor="middle" fill="white" font-size="48" font-family="sans-serif" font-weight="bold">${initial}</text></svg>`
   return `data:image/svg+xml;base64,${toBase64(svg)}`
 }
+
+// 计算工作小时数（基于打卡时间）
+export function calcWorkHours(checkIn: string | null, checkOut: string | null): number {
+  if (!checkIn || !checkOut) return 0
+  const [h1, m1, s1] = checkIn.split(':').map(Number)
+  const [h2, m2, s2] = checkOut.split(':').map(Number)
+  return +(h2 - h1 + (m2 - m1) / 60 + (s2 - s1) / 3600).toFixed(1)
+}

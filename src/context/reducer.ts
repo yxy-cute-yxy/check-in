@@ -28,6 +28,12 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       };
     }
 
+    case 'ADD_WORKER': {
+      const worker = action.payload;
+      if (state.workers.some((w) => w.id === worker.id)) return state;
+      return { ...state, workers: [...state.workers, worker] };
+    }
+
     case 'SET_CURRENT_USER':
       return { ...state, currentUser: action.payload };
 

@@ -5,6 +5,7 @@ import { Dashboard } from '@/components/dashboard/Dashboard'
 import { RegistrationForm } from '@/components/registration/RegistrationForm'
 import { CheckInPage } from '@/components/checkin/CheckInPage'
 import { AttendancePage } from '@/components/attendance/AttendancePage'
+import { ManagerPage } from '@/components/manager/ManagerPage'
 import { useApp } from '@/context/AppContext'
 import { seedIfNeeded } from '@/lib/seed'
 
@@ -34,7 +35,7 @@ function PageRouter() {
     case 'registration': return <RegistrationForm />
     case 'checkin':      return <CheckInPage />
     case 'attendance':   return <AttendancePage />
-    case 'manager':      return <StubPage title="考勤数据统计" />
+    case 'manager':      return <ManagerPage />
     default:             return <Dashboard />
   }
 }

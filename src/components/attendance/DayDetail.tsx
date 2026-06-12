@@ -9,6 +9,7 @@ const statusMap: Record<AttendanceStatus, { label: string; cls: string }> = {
   late: { label: '迟到', cls: 'bg-orange-50 text-orange-500' },
   early: { label: '早退', cls: 'bg-orange-50 text-orange-500' },
   absent: { label: '缺勤', cls: 'bg-zinc-100 text-zinc-400' },
+  leave: { label: '请假', cls: 'bg-sky-50 text-sky-500' },
 };
 
 function StatusBadge({ status }: { status: AttendanceStatus }) {

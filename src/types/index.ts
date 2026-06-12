@@ -16,7 +16,7 @@ export type Trade = '木工' | '电工' | '水泥工' | '焊工' | '钢筋工' |
 export type CheckInType = 'in' | 'out';
 
 // 考勤状态
-export type AttendanceStatus = 'normal' | 'late' | 'early' | 'absent';
+export type AttendanceStatus = 'normal' | 'late' | 'early' | 'absent' | 'leave';
 
 // 统计周期
 export type Period = 'week' | 'month' | 'quarter';
@@ -62,6 +62,7 @@ export type AppAction =
   | { type: 'SET_ROLE'; payload: Role }
   | { type: 'REGISTER_WORKER'; payload: Worker }
   | { type: 'SET_CURRENT_USER'; payload: Worker }
+  | { type: 'ADD_WORKER'; payload: Worker }
   | { type: 'ADD_ATTENDANCE'; payload: AttendanceRecord }
   | { type: 'UPDATE_WORKER'; payload: Worker }
   | { type: 'LOAD_STATE'; payload: AppState };
