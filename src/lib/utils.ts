@@ -60,6 +60,50 @@ export function randomTime(start: string, end: string): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
+// === 日历辅助函数 ===
+
+export function getDaysInMonth(year: number, month: number): number {
+  return new Date(year, month + 1, 0).getDate()
+}
+
+export function getFirstDayOfMonth(year: number, month: number): number {
+  return new Date(year, month, 1).getDay()
+}
+
+export function getWeekRange(date: Date): { start: string; end: string } {
+  const day = date.getDay()
+  const monDiff = day === 0 ? -6 : 1 - day
+  const mon = new Date(date)
+  mon.setDate(date.getDate() + monDiff)
+  const sun = new Date(mon)
+  sun.setDate(mon.getDate() + 6)
+  return { start: dateToStr(mon), end: dateToStr(sun) }
+}
+
+export function getMonthRange(date: Date): { start: string; end: string } {
+  const y = date.getFullYear()
+  const m = date.getMonth()
+  return {
+    start: `${y}-${String(m + 1).padStart(2, '0')}-01`,
+    end: `${y}-${String(m + 1).padStart(2, '0')}-${String(getDaysInMonth(y, m)).padStart(2, '0')}`,
+  }
+}
+
+export function getQuarterRange(date: Date): { start: string; end: string } {
+  const y = date.getFullYear()
+  const q = Math.floor(date.getMonth() / 3)
+  const startM = q * 3
+  const endM = q * 3 + 2
+  return {
+    start: `${y}-${String(startM + 1).padStart(2, '0')}-01`,
+    end: `${y}-${String(endM + 1).padStart(2, '0')}-${String(getDaysInMonth(y, endM)).padStart(2, '0')}`,
+  }
+}
+
+function dateToStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 // 安全 Base64 编码（支持中文等 UTF-8 字符）
 function toBase64(str: string): string {
   const bytes = new TextEncoder().encode(str)

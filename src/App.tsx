@@ -4,6 +4,7 @@ import { AppShell } from '@/components/layout/AppShell'
 import { Dashboard } from '@/components/dashboard/Dashboard'
 import { RegistrationForm } from '@/components/registration/RegistrationForm'
 import { CheckInPage } from '@/components/checkin/CheckInPage'
+import { AttendancePage } from '@/components/attendance/AttendancePage'
 import { useApp } from '@/context/AppContext'
 import { seedIfNeeded } from '@/lib/seed'
 
@@ -32,7 +33,7 @@ function PageRouter() {
   switch (state.currentPage) {
     case 'registration': return <RegistrationForm />
     case 'checkin':      return <CheckInPage />
-    case 'attendance':   return <StubPage title="考勤记录" />
+    case 'attendance':   return <AttendancePage />
     case 'manager':      return <StubPage title="考勤数据统计" />
     default:             return <Dashboard />
   }

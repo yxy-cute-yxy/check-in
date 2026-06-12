@@ -17,8 +17,8 @@ export function DynamicClock() {
       <p className="text-[11px] font-bold text-neutral-400 tracking-[0.2em] uppercase mb-2">
         当前时间
       </p>
-      <p className="text-5xl font-black text-neutral-900 tracking-tighter tabular-nums">
-        {hh}<span className="text-lime-500">:</span>{mm}<span className="text-lime-500">:</span>{ss}
+      <p className="text-5xl font-extrabold text-neutral-900 tracking-normal tabular-nums">
+        {hh}<span className="text-neutral-900">:</span>{mm}<span className="text-neutral-900">:</span>{ss}
       </p>
     </div>
   );

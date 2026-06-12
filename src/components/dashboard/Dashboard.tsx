@@ -86,7 +86,7 @@ export function Dashboard() {
               background: `conic-gradient(#84cc16 0deg ${stats.rate * 3.6}deg, #f1f5f9 ${stats.rate * 3.6}deg 360deg)`,
             }}
           >
-            <span className="relative z-10 text-xl font-black text-neutral-900 tabular-nums">
+            <span className="relative z-10 text-xl font-black text-neutral-900 tabular-nums tracking-tight">
               {stats.rate}%
             </span>
           </div>
@@ -96,7 +96,7 @@ export function Dashboard() {
         {/* 右：异常次数 */}
         <div className="bg-white rounded-3xl p-5 shadow-[0_4px_20px_rgb(0,0,0,0.03)]
                         flex flex-col items-center justify-center text-center">
-          <span className="text-4xl font-black text-orange-500 tabular-nums">
+          <span className="text-4xl font-black text-orange-500 tabular-nums tracking-tight">
             {stats.anomalyDays}
           </span>
           <span className="text-[11px] text-orange-500/70 font-medium mt-1">次异常</span>

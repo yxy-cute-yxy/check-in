@@ -4,6 +4,7 @@
 @theme {
   --color-industrial-900: #171717;
   --color-industrial-700: #525252;
+  --font-sans: "Plus Jakarta Sans", "Inter", "SF Pro Text", system-ui, sans-serif;
   --font-mono: "Consolas", "Monaco", "Courier New", monospace;
 }
 
