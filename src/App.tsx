@@ -9,26 +9,6 @@ import { ManagerPage } from '@/components/manager/ManagerPage'
 import { useApp } from '@/context/AppContext'
 import { seedIfNeeded } from '@/lib/seed'
 
-function StubPage({ title }: { title: string }) {
-  const { dispatch } = useApp()
-  return (
-    <div className="p-4">
-      <div className="bg-white rounded-3xl p-10 text-center shadow-[0_4px_20px_rgb(0,0,0,0.03)]">
-        <p className="text-4xl mb-3">&#x2007;</p>
-        <p className="text-[13px] font-bold text-industrial-700 tracking-wider uppercase">{title}</p>
-        <p className="text-[11px] text-zinc-300 font-mono mt-1">PHASE / BUILDING</p>
-        <button
-          className="mt-6 px-5 py-2.5 text-[11px] font-bold text-industrial-700 bg-zinc-50 rounded-2xl
-                     hover:bg-lime-50 hover:text-lime-600 transition-colors tracking-wider"
-          onClick={() => dispatch({ type: 'SET_PAGE', payload: 'home' })}
-        >
-          返回工作台
-        </button>
-      </div>
-    </div>
-  )
-}
-
 function PageRouter() {
   const { state } = useApp()
   switch (state.currentPage) {
@@ -42,11 +22,10 @@ function PageRouter() {
 
 export default function App() {
   // 同步预填充：在 useApp 之前写入 localStorage，确保 reducer 初始化时能读到
-  const [ready] = useState(() => {
+  useState(() => {
     if (!localStorage.getItem('checkin_seeded')) {
       seedIfNeeded()
     }
-    return true
   })
 
   const { state, dispatch } = useApp()

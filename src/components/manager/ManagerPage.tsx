@@ -3,7 +3,6 @@ import { useApp } from '@/context/AppContext';
 import { todayStr, offsetDate, generateAvatar, calcWorkHours } from '@/lib/utils';
 import { TRADE_LIST } from '@/lib/constants';
 import { HardHat } from 'lucide-react';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { TrendChart } from '@/components/manager/TrendChart';
 import type { AttendanceStatus, Worker, AttendanceRecord, Trade } from '@/types';
 
@@ -171,40 +170,6 @@ function generateDemoTeam(): { workers: Worker[]; records: AttendanceRecord[] } 
 
 function Dot({ color }: { color: string }) {
   return <span className={`inline-block w-1.5 h-1.5 rounded-full mr-0.5 align-middle ${color}`} />;
-}
-
-function MonthlySummary({ normalDays, lateCount, earlyCount, leaveCount, absentCount }: {
-  normalDays: number; lateCount: number; earlyCount: number; leaveCount: number; absentCount: number;
-}) {
-  if (normalDays + lateCount + earlyCount + leaveCount + absentCount === 0) {
-    return <span className="text-[10px] text-zinc-300 font-medium">暂无记录</span>;
-  }
-  return (
-    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] font-medium">
-      {normalDays > 0 && (
-        <span className="inline-flex items-center text-lime-500">
-          <Dot color="bg-lime-500" />正常{normalDays}
-        </span>
-      )}
-      {(lateCount > 0 || earlyCount > 0) && (
-        <span className="inline-flex items-center text-orange-500">
-          <Dot color="bg-orange-500" />
-          迟到{lateCount}次
-          {earlyCount > 0 && <> / 早退{earlyCount}次</>}
-        </span>
-      )}
-      {leaveCount > 0 && (
-        <span className="inline-flex items-center text-blue-500">
-          <Dot color="bg-blue-500" />请假{leaveCount}次
-        </span>
-      )}
-      {absentCount > 0 && (
-        <span className="inline-flex items-center text-zinc-400">
-          <Dot color="bg-zinc-400" />缺勤{absentCount}次
-        </span>
-      )}
-    </div>
-  );
 }
 
 export function ManagerPage() {
@@ -387,22 +352,6 @@ export function ManagerPage() {
   const displayedStats = tooMany && !showAllTable
     ? sortedStats.slice(0, COLLAPSE_THRESHOLD)
     : sortedStats;
-
-  function StatusBadge({ status }: { status: AttendanceStatus | 'none' }) {
-    if (status === 'none') {
-      return (
-        <span className="rounded-full px-2.5 py-0.5 text-[10px] font-bold bg-zinc-50 text-zinc-300">
-          未打卡
-        </span>
-      );
-    }
-    const { label, cls } = statusMap[status];
-    return (
-      <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${cls}`}>
-        {label}
-      </span>
-    );
-  }
 
   // 异常详情子页面
   if (anomalyWorkerId) {
@@ -676,129 +625,142 @@ export function ManagerPage() {
       {/* 总出勤工时趋势图 */}
       <TrendChart weekData={weekTrend} monthData={monthTrend} weekMaxY={weekMaxY} monthMaxY={monthMaxY} />
 
-      {/* 考勤表格 */}
+      {/* 全员月度考勤卡片列表 */}
       <div className={`${slideUp} bg-white rounded-3xl p-4 shadow-[0_4px_20px_rgb(0,0,0,0.03)]`}
         style={{ animationDelay: '320ms' }}>
         <div className="flex items-center justify-between mb-3">
           <p className="text-[10px] font-bold text-neutral-400 tracking-[0.2em] uppercase">
             {selectedTrade === 'all' ? '全员月度考勤' : `${selectedTrade}月度考勤`}
           </p>
-          {selectedTrade !== 'all' && (
-            <div className="flex bg-zinc-100 rounded-xl p-0.5 gap-0.5">
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => {
+                if (sortKey === 'rate') setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+                else { setSortKey('rate'); setSortDir('asc'); }
+              }}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                sortKey === 'rate' ? 'bg-neutral-900 text-white' : 'bg-zinc-100 text-neutral-400'
+              }`}
+            >
+              出勤率{sortKey === 'rate' ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
+            </button>
+            <button
+              onClick={() => {
+                if (sortKey === 'anomaly') setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+                else { setSortKey('anomaly'); setSortDir('desc'); }
+              }}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                sortKey === 'anomaly' ? 'bg-neutral-900 text-white' : 'bg-zinc-100 text-neutral-400'
+              }`}
+            >
+              纪律{sortKey === 'anomaly' ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
+            </button>
+          </div>
+        </div>
+
+        {selectedTrade !== 'all' && (
+          <div className="flex bg-zinc-100 rounded-xl p-0.5 gap-0.5 mb-3">
+            <button
+              onClick={() => setSelectedTeam('all')}
+              className={`px-3 py-1 text-[10px] rounded-lg transition-all duration-200 ${
+                selectedTeam === 'all'
+                  ? 'bg-white shadow-[0_1px_4px_rgb(0,0,0,0.06)] text-neutral-900 font-bold'
+                  : 'text-neutral-400 font-medium'
+              }`}
+            >
+              全部
+            </button>
+            {teams.map((team) => (
               <button
-                onClick={() => setSelectedTeam('all')}
+                key={team}
+                onClick={() => setSelectedTeam(team)}
                 className={`px-3 py-1 text-[10px] rounded-lg transition-all duration-200 ${
-                  selectedTeam === 'all'
+                  selectedTeam === team
                     ? 'bg-white shadow-[0_1px_4px_rgb(0,0,0,0.06)] text-neutral-900 font-bold'
                     : 'text-neutral-400 font-medium'
                 }`}
               >
-                全部
+                {team}
               </button>
-              {teams.map((team) => (
-                <button
-                  key={team}
-                  onClick={() => setSelectedTeam(team)}
-                  className={`px-3 py-1 text-[10px] rounded-lg transition-all duration-200 ${
-                    selectedTeam === team
-                      ? 'bg-white shadow-[0_1px_4px_rgb(0,0,0,0.06)] text-neutral-900 font-bold'
-                      : 'text-neutral-400 font-medium'
-                  }`}
-                >
-                  {team}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-        <div className="overflow-x-auto -mx-1">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-[10px] font-bold text-neutral-400">姓名</TableHead>
-                <TableHead className="text-[10px] font-bold text-neutral-400">工种</TableHead>
-                <TableHead className="text-[10px] font-bold text-neutral-400">班组</TableHead>
-                <TableHead className="text-[10px] font-bold text-neutral-400">月总工时/h</TableHead>
-                <TableHead className="text-[10px] font-bold text-neutral-400">
-                  <button
-                    onClick={() => {
-                      if (sortKey === 'rate') {
-                        setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
-                      } else {
-                        setSortKey('rate');
-                        setSortDir('asc');
-                      }
-                    }}
-                    className={`inline-flex items-center gap-0.5 transition-colors ${
-                      sortKey === 'rate' ? 'text-neutral-900' : 'text-neutral-400 hover:text-neutral-700'
-                    }`}
-                  >
-                    出勤率
-                    <span className="flex flex-col leading-none -space-y-px">
-                      <span className={sortKey === 'rate' && sortDir === 'desc' ? 'text-neutral-900' : 'text-neutral-300'}>&#9650;</span>
-                      <span className={sortKey === 'rate' && sortDir === 'asc' ? 'text-neutral-900' : 'text-neutral-300'}>&#9660;</span>
+            ))}
+          </div>
+        )}
+
+        <div className="space-y-2">
+          {displayedStats.map(({ worker, totalHours, rate, isAnomaly, normalDays, lateCount, earlyCount, leaveCount, absentCount }) => (
+            <div
+              key={worker.id}
+              onClick={() => setAnomalyWorkerId(worker.id)}
+              className="bg-zinc-50 rounded-2xl p-3 hover:bg-zinc-100/70 transition-colors cursor-pointer"
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="w-7 h-7 rounded-lg bg-lime-500 flex items-center justify-center text-white font-extrabold text-[11px] shrink-0">
+                  {worker.name.charAt(0)}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[13px] font-bold text-neutral-900">{worker.name}</span>
+                    {isAnomaly && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-orange-500 ring-2 ring-orange-100 shrink-0" />
+                    )}
+                  </div>
+                  <span className="text-[10px] text-neutral-400">{worker.trade} · {worker.team}</span>
+                </div>
+                <div className="flex items-center gap-4 shrink-0">
+                  <div className="text-right min-w-[42px]">
+                    <span className="text-[15px] font-extrabold text-neutral-900 tabular-nums tracking-tight block leading-none">
+                      {totalHours.toFixed(1)}
                     </span>
-                  </button>
-                </TableHead>
-                <TableHead className="text-[10px] font-bold text-neutral-400">
-                  <button
-                    onClick={() => {
-                      if (sortKey === 'anomaly') {
-                        setSortDir(sortDir === 'desc' ? 'asc' : 'desc');
-                      } else {
-                        setSortKey('anomaly');
-                        setSortDir('desc');
-                      }
-                    }}
-                    className={`inline-flex items-center gap-0.5 transition-colors ${
-                      sortKey === 'anomaly' ? 'text-neutral-900' : 'text-neutral-400 hover:text-neutral-700'
-                    }`}
-                  >
-                    月度纪律
-                    <span className="flex flex-col leading-none -space-y-px">
-                      <span className={sortKey === 'anomaly' && sortDir === 'asc' ? 'text-neutral-900' : 'text-neutral-300'}>&#9650;</span>
-                      <span className={sortKey === 'anomaly' && sortDir === 'desc' ? 'text-neutral-900' : 'text-neutral-300'}>&#9660;</span>
-                    </span>
-                  </button>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {displayedStats.map(({ worker, totalHours, rate, isAnomaly, normalDays, lateCount, earlyCount, leaveCount, absentCount }) => (
-                <TableRow key={worker.id}>
-                  <TableCell className="text-[13px] font-bold text-neutral-900">
-                    {worker.name}
-                  </TableCell>
-                  <TableCell className="text-[12px] text-neutral-500 font-medium">
-                    {worker.trade}
-                  </TableCell>
-                  <TableCell className="text-[12px] text-neutral-500 font-medium">
-                    {worker.team}
-                  </TableCell>
-                  <TableCell className="text-[13px] font-extrabold text-neutral-900 tabular-nums tracking-tight">
-                    <button
-                      onClick={() => setAnomalyWorkerId(worker.id)}
-                      className="flex items-center gap-1.5 group"
-                    >
-                      <span>{totalHours.toFixed(1)}</span>
-                      {isAnomaly && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-orange-500 ring-2 ring-orange-100" />
-                      )}
-                    </button>
-                  </TableCell>
-                  <TableCell className="text-[13px] font-extrabold tabular-nums tracking-tight">
-                    <span className={rate >= 80 ? 'text-lime-500' : rate > 0 ? 'text-orange-500' : 'text-zinc-300'}>
+                    <span className="text-[9px] text-neutral-400 font-medium">h</span>
+                  </div>
+                  <div className="text-right min-w-[36px]">
+                    <span className={`text-[15px] font-extrabold tabular-nums tracking-tight block leading-none ${
+                      rate >= 80 ? 'text-lime-500' : rate > 0 ? 'text-orange-500' : 'text-zinc-300'
+                    }`}>
                       {rate}%
                     </span>
-                  </TableCell>
-                  <TableCell>
-                    <MonthlySummary normalDays={normalDays} lateCount={lateCount} earlyCount={earlyCount} leaveCount={leaveCount} absentCount={absentCount} />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                    <span className="text-[9px] text-neutral-400 font-medium">出勤</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 mt-2 text-[10px] font-medium">
+                {normalDays + lateCount + earlyCount + leaveCount + absentCount === 0 ? (
+                  <span className="text-zinc-300">暂无记录</span>
+                ) : (
+                  <>
+                    {normalDays > 0 && (
+                      <span className="inline-flex items-center text-lime-500">
+                        <Dot color="bg-lime-500" />正常{normalDays}
+                      </span>
+                    )}
+                    {lateCount > 0 && (
+                      <span className="inline-flex items-center text-orange-500">
+                        <Dot color="bg-orange-500" />迟到{lateCount}
+                      </span>
+                    )}
+                    {earlyCount > 0 && (
+                      <span className="inline-flex items-center text-orange-500">
+                        <Dot color="bg-orange-500" />早退{earlyCount}
+                      </span>
+                    )}
+                    {leaveCount > 0 && (
+                      <span className="inline-flex items-center text-blue-500">
+                        <Dot color="bg-blue-500" />请假{leaveCount}
+                      </span>
+                    )}
+                    {absentCount > 0 && (
+                      <span className="inline-flex items-center text-zinc-400">
+                        <Dot color="bg-zinc-400" />缺勤{absentCount}
+                      </span>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
+
         {tooMany && (
           <button
             onClick={() => setShowAllTable(!showAllTable)}
@@ -807,7 +769,6 @@ export function ManagerPage() {
             {showAllTable ? '收起' : `展开全部（${sortedStats.length}人）`}
           </button>
         )}
-      </div>
-    </div>
+      </div>    </div>
   );
 }
