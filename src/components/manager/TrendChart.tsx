@@ -2,37 +2,24 @@ import { useState, useRef, useEffect } from 'react';
 
 type Timeframe = 'week' | 'month';
 
-interface DataPoint {
+export interface DataPoint {
   label: string;
   hours: number;
   rate: number;
 }
 
-const WEEK_DATA: DataPoint[] = [
-  { label: '周一', hours: 128, rate: 92 },
-  { label: '周二', hours: 142, rate: 95 },
-  { label: '周三', hours: 115, rate: 88 },
-  { label: '周四', hours: 136, rate: 93 },
-  { label: '周五', hours: 98, rate: 78 },
-  { label: '周六', hours: 72, rate: 65 },
-  { label: '周日', hours: 45, rate: 55 },
-];
-
-const MONTH_DATA: DataPoint[] = [
-  { label: '1日', hours: 520, rate: 91 },
-  { label: '5日', hours: 610, rate: 94 },
-  { label: '10日', hours: 680, rate: 96 },
-  { label: '15日', hours: 590, rate: 90 },
-  { label: '20日', hours: 510, rate: 85 },
-  { label: '25日', hours: 480, rate: 82 },
-  { label: '30日', hours: 450, rate: 78 },
-];
+interface Props {
+  weekData: DataPoint[];
+  monthData: DataPoint[];
+  weekMaxY: number;
+  monthMaxY: number;
+}
 
 const CHART_H = 200;
 
 const slideUp = 'opacity-0 animate-[slideUp_0.4s_ease-out_forwards]';
 
-export function TrendChart() {
+export function TrendChart({ weekData, monthData, weekMaxY, monthMaxY }: Props) {
   const [timeframe, setTimeframe] = useState<Timeframe>('week');
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -49,24 +36,41 @@ export function TrendChart() {
     return () => ro.disconnect();
   }, []);
 
-  const data = timeframe === 'week' ? WEEK_DATA : MONTH_DATA;
-  const maxY = timeframe === 'week' ? 160 : 720;
+  const data = timeframe === 'week' ? weekData : monthData;
+  const maxY = timeframe === 'week' ? weekMaxY : monthMaxY;
   const yTicks = timeframe === 'week'
-    ? [160, 120, 80, 40, 0]
-    : [720, 540, 360, 180, 0];
+    ? [weekMaxY, Math.round(weekMaxY * 0.75), Math.round(weekMaxY * 0.5), Math.round(weekMaxY * 0.25), 0]
+    : [monthMaxY, Math.round(monthMaxY * 0.75), Math.round(monthMaxY * 0.5), Math.round(monthMaxY * 0.25), 0];
 
-  // Bar geometry
+  // Bar geometry: justify-around, each column center at chartWidth * (i+0.5) / N
   const barCount = data.length;
-  const gapPx = 8;
-  const colW = (chartWidth - gapPx * (barCount - 1)) / barCount;
 
-  // Line points for SVG
+  // Line points for SVG (clamp to chart bounds)
   const points = data.map((d, i) => {
-    const cx = colW * (i + 0.5) + gapPx * i;
-    const cy = (1 - d.hours / maxY) * CHART_H;
+    const cx = chartWidth * (i + 0.5) / barCount;
+    const cy = Math.max(0, Math.min(CHART_H, (1 - d.hours / maxY) * CHART_H));
     return { cx, cy, ...d };
   });
-  const polylinePoints = points.map((p) => `${p.cx},${p.cy}`).join(' ');
+
+  // Monotone cubic bezier — stays within data bounds, no overshoot
+  function smoothPath(pts: { cx: number; cy: number }[]): string {
+    if (pts.length < 2) return '';
+    const n = pts.length;
+    let d = `M ${pts[0].cx},${pts[0].cy}`;
+    for (let i = 0; i < n - 1; i++) {
+      const p0 = pts[Math.max(i - 1, 0)];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = pts[Math.min(i + 2, n - 1)];
+      const tension = i === 0 || i === n - 2 ? 3 : 6;
+      const cp1y = clampY(p1.cy + (p2.cy - p0.cy) / (tension * 2));
+      const cp2y = clampY(p2.cy - (p3.cy - p1.cy) / (tension * 2));
+      d += ` C ${p1.cx + (p2.cx - p0.cx) / tension},${cp1y} ${p2.cx - (p3.cx - p1.cx) / tension},${cp2y} ${p2.cx},${p2.cy}`;
+    }
+    return d;
+  }
+  function clampY(y: number) { return Math.max(0, Math.min(CHART_H, y)); }
+  const smoothLinePath = smoothPath(points);
 
   return (
     <div
@@ -74,8 +78,8 @@ export function TrendChart() {
       style={{ animationDelay: '280ms' }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[13px] font-extrabold text-neutral-900 tracking-tight">
+      <div className="flex items-center justify-between mb-10">
+        <h3 className="text-[13px] font-extrabold text-neutral-900 tracking-tight  mb-5">
           总出勤工时趋势
         </h3>
         <div className="flex bg-zinc-100 rounded-xl p-0.5 gap-0.5">
@@ -106,50 +110,62 @@ export function TrendChart() {
       <div className="relative">
         {/* Y-axis + grid */}
         <div className="absolute left-0 top-0 flex flex-col justify-between"
-          style={{ height: CHART_H, width: 32 }}>
-          {yTicks.map((v) => (
-            <span key={v} className="text-[9px] font-medium text-neutral-400 leading-none translate-y-[-50%] first:translate-y-0 last:translate-y-0">
+          style={{ height: CHART_H, width: 36 }}>
+          {yTicks.map((v, i) => (
+            <span key={v}
+              className="text-[9px] font-medium text-neutral-400 leading-none"
+              style={{ transform: i === 0 ? 'translateY(0)' : i === yTicks.length - 1 ? 'translateY(0)' : 'translateY(-50%)' }}>
               {v}h
             </span>
           ))}
         </div>
 
         {/* Bars + SVG line area */}
-        <div className="ml-8 relative" ref={containerRef} style={{ height: CHART_H }}>
+        <div className="ml-8 relative border-l border-b border-zinc-200" ref={containerRef} style={{ height: CHART_H }}>
           {/* Horizontal grid lines */}
-          {yTicks.slice(1, -1).map((v) => (
+          {yTicks.slice(0, -1).map((v) => (
             <div
               key={v}
-              className="absolute left-0 right-0 border-t border-zinc-100 pointer-events-none"
+              className="absolute left-0 right-0 border-t border-dashed border-zinc-200 pointer-events-none"
               style={{ top: `${(1 - v / maxY) * 100}%` }}
             />
           ))}
+          {/* Zero line */}
+          <div className="absolute left-0 right-0 border-t border-zinc-300 pointer-events-none" style={{ top: '100%' }} />
 
           {/* Bars */}
-          <div className="flex gap-2 h-full items-end">
+          <div className="flex justify-around items-end h-full">
             {data.map((d, i) => {
-              const hPct = (d.hours / maxY) * 100;
+              const hPct = Math.min(100, (d.hours / maxY) * 100);
+              const isActive = hoveredIndex === i;
               return (
                 <div
                   key={d.label}
-                  className="flex-1 flex flex-col items-center justify-end h-full relative cursor-pointer group"
+                  className="flex flex-col items-center justify-end h-full relative"
                   onMouseEnter={() => setHoveredIndex(i)}
                   onMouseLeave={() => setHoveredIndex(null)}
                 >
-                  {/* Tooltip */}
+                  {/* Tooltip bubble */}
                   <div
-                    className={`absolute -top-8 left-1/2 -translate-x-1/2 bg-neutral-900 text-white
-                      text-[10px] font-bold px-2.5 py-1 rounded-lg whitespace-nowrap z-10
-                      transition-all duration-200 pointer-events-none
-                      ${hoveredIndex === i ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'}`}
+                    className={`absolute left-1/2 -translate-x-1/2 z-10 pointer-events-none
+                      transition-all duration-300
+                      ${isActive ? 'opacity-100 -translate-y-0' : 'opacity-0 translate-y-1'}`}
+                    style={{ top: `${100 - hPct}%`, marginTop: -36 }}
                   >
-                    总工时: {d.hours}h
+                    <div className="bg-neutral-900 text-white text-[10px] font-bold px-2 py-1 rounded-md whitespace-nowrap">
+                      {d.hours}h
+                    </div>
+                    {/* Triangle pointer */}
+                    <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-2 h-2 bg-neutral-900 rotate-45" />
                   </div>
 
                   {/* Bar */}
                   <div
-                    className="w-full bg-lime-500 rounded-t-md transition-all duration-500 ease-out
-                      group-hover:brightness-110"
+                    className={`w-7 rounded-t-md transition-all duration-500 ease-out cursor-pointer
+                      ${isActive
+                        ? 'bg-lime-500 shadow-lg shadow-lime-500/30'
+                        : 'bg-lime-500/10 bg-gradient-to-t from-lime-500/20 to-transparent'
+                      }`}
                     style={{ height: `${hPct}%` }}
                   />
                 </div>
@@ -163,6 +179,7 @@ export function TrendChart() {
             width={chartWidth}
             height={CHART_H}
             viewBox={`0 0 ${chartWidth} ${CHART_H}`}
+            overflow="visible"
           >
             {/* Gradient area under line */}
             <defs>
@@ -172,11 +189,11 @@ export function TrendChart() {
               </linearGradient>
             </defs>
 
-            {/* Line */}
-            <polyline
-              points={polylinePoints}
+            {/* Smooth line */}
+            <path
+              d={smoothLinePath}
               fill="none"
-              stroke="#171717"
+              stroke="#84cc16"
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -189,7 +206,7 @@ export function TrendChart() {
                 cx={p.cx}
                 cy={p.cy}
                 r={hoveredIndex === i ? 5 : 3.5}
-                fill="#84cc16"
+                fill="#171717"
                 stroke="white"
                 strokeWidth="2"
                 className="transition-all duration-200"
@@ -199,11 +216,11 @@ export function TrendChart() {
         </div>
 
         {/* X-axis labels */}
-        <div className="ml-8 flex gap-2 mt-1.5">
+        <div className="ml-8 flex justify-around mt-1.5">
           {data.map((d) => (
             <span
               key={d.label}
-              className="flex-1 text-center text-[9px] font-medium text-neutral-400"
+              className="w-7 text-center text-[9px] font-medium text-neutral-400"
             >
               {d.label}
             </span>

@@ -65,4 +65,5 @@ export type AppAction =
   | { type: 'ADD_WORKER'; payload: Worker }
   | { type: 'ADD_ATTENDANCE'; payload: AttendanceRecord }
   | { type: 'UPDATE_WORKER'; payload: Worker }
+  | { type: 'CLEAR_DEMO_DATA' }
   | { type: 'LOAD_STATE'; payload: AppState };

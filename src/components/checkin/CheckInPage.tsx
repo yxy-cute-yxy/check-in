@@ -58,16 +58,17 @@ export function CheckInPage() {
 
     dispatch({ type: 'ADD_ATTENDANCE', payload: record });
 
-    const typeLabel = checkType === 'in' ? '上班' : '下班';
     const isLate = checkType === 'in' && now > '08:00:00';
     const isEarly = checkType === 'out' && now < '18:00:00';
 
     if (isLate) {
-      toast.warning(`${typeLabel}打卡成功，但已迟到`);
+      toast.warning('打卡成功，但已迟到');
     } else if (isEarly) {
-      toast.warning(`${typeLabel}打卡成功，但为早退`);
+      toast.warning('打卡成功，但为早退');
+    } else if (checkType === 'in') {
+      toast.success('打卡成功，今天也要注意安全，规范施工');
     } else {
-      toast.success(`${typeLabel}打卡成功`);
+      toast.success('打卡成功，今日工时已记录，好好休息');
     }
   }
 
@@ -77,6 +78,10 @@ export function CheckInPage() {
       <CheckInToggle value={checkType} onChange={setCheckType} />
       <CheckInButton onClick={() => setShowCamera(true)} />
       <TimelineDots />
+
+      <p className="text-center text-[11px] text-zinc-300 font-medium mt-8">
+        「 每一次打卡，都是对家人的承诺 」
+      </p>
 
       <CameraModal
         open={showCamera}

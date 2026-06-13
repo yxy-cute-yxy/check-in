@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useApp } from '@/context/AppContext';
 import { getWeekRange, getMonthRange, getQuarterRange, offsetDate, randomTime, computeStatus } from '@/lib/utils';
 import { PeriodSwitcher } from './PeriodSwitcher';
@@ -58,6 +58,8 @@ export function AttendancePage() {
   const [period, setPeriod] = useState<Period>('month');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [viewedWorkerId, setViewedWorkerId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState('');
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
 
   const effectiveWorkerId = isManager ? viewedWorkerId : state.currentUser?.id ?? '';
 
@@ -126,6 +128,18 @@ export function AttendancePage() {
     }
   }
 
+  const isAbnormal = selectedLog && (selectedLog.status === 'late' || selectedLog.status === 'early' || selectedLog.status === 'absent');
+
+  const handleSubmitFeedback = useCallback(() => {
+    if (!feedback.trim() || !selectedLog) return;
+    setFeedbackSubmitting(true);
+    setTimeout(() => {
+      setFeedbackSubmitting(false);
+      setFeedback('');
+      setSelectedDate(null);
+    }, 600);
+  }, [feedback, selectedLog]);
+
   return (
     <div className="p-4 pb-8 space-y-4">
       {/* 经理：工人选择器 */}
@@ -165,8 +179,43 @@ export function AttendancePage() {
 
       {/* 日期详情 */}
       {selectedLog && (
-        <div style={{ animationDelay: '320ms' }}>
+        <div className={slideUp} style={{ animationDelay: '320ms' }}>
           <DayDetail record={selectedLog} />
+        </div>
+      )}
+
+      {/* 异常反馈 */}
+      {selectedLog && isAbnormal && (
+        <div className={`${slideUp} bg-white rounded-3xl p-5 shadow-[0_4px_20px_rgb(0,0,0,0.03)]`}
+          style={{ animationDelay: '400ms' }}>
+          <h3 className="text-[13px] font-extrabold text-neutral-900 mb-3">异常反馈</h3>
+          {feedbackSubmitting ? (
+            <div className="flex items-center gap-2 text-lime-500">
+              <span className="text-lg">&#10003;</span>
+              <span className="text-[13px] font-bold">反馈已提交</span>
+            </div>
+          ) : (
+            <>
+              <textarea
+                value={feedback}
+                onChange={(e) => setFeedback(e.target.value)}
+                placeholder="简述异常原因（如：交通拥堵、身体不适...）"
+                rows={3}
+                className="w-full rounded-2xl bg-zinc-50 p-3 text-[13px] text-neutral-900 placeholder:text-zinc-300
+                           outline-none resize-none transition-all duration-200
+                           focus:bg-white focus:ring-2 focus:ring-lime-500/20"
+              />
+              <button
+                onClick={handleSubmitFeedback}
+                disabled={!feedback.trim()}
+                className="w-full mt-3 py-2.5 rounded-2xl text-[13px] font-bold transition-all duration-200
+                           bg-neutral-900 text-white hover:bg-neutral-800
+                           disabled:bg-zinc-100 disabled:text-zinc-300"
+              >
+                提交反馈
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>

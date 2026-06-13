@@ -64,6 +64,13 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, workers, currentUser };
     }
 
+    case 'CLEAR_DEMO_DATA':
+      return {
+        ...state,
+        workers: state.workers.filter((w) => !w.id.startsWith('demo-')),
+        attendanceLogs: state.attendanceLogs.filter((r) => !r.workerId.startsWith('demo-')),
+      };
+
     case 'LOAD_STATE':
       return action.payload;
 

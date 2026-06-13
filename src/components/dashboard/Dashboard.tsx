@@ -15,21 +15,56 @@ function useWorkerStats(logs: AttendanceRecord[], workerId: string) {
 
   const totalDays = myLogs.length;
   const normalDays = myLogs.filter((l) => l.status === 'normal').length;
-  const anomalyDays = myLogs.filter((l) => l.status === 'late' || l.status === 'early').length;
-  const rate = totalDays > 0 ? Math.round((normalDays / totalDays) * 100) : 0;
+  const lateCount = myLogs.filter((l) => l.status === 'late').length;
+  const earlyCount = myLogs.filter((l) => l.status === 'early').length;
+  const anomalyDays = lateCount + earlyCount;
+  const rate = totalDays > 0 ? Math.round(((normalDays + lateCount + earlyCount) / totalDays) * 100) : 0;
 
-  // 今日是否正常
   const todayLog = myLogs.find((l) => l.date === today);
   const todayStatus = todayLog ? (todayLog.status === 'normal' ? '今日正常' : '今日异常') : '暂无数据';
 
   return { totalDays, normalDays, anomalyDays, rate, todayStatus };
 }
 
+function useTeamStats(logs: AttendanceRecord[], workerIds: string[]) {
+  const today = todayStr();
+  const thisMonth = today.slice(0, 7);
+
+  const monthLogs = logs.filter(
+    (l) => workerIds.includes(l.workerId) && l.date.startsWith(thisMonth)
+  );
+
+  // 每人出勤率取平均
+  const rates = workerIds.map((wid) => {
+    const wLogs = logs.filter((l) => l.workerId === wid && l.date.startsWith(thisMonth));
+    const wTotal = wLogs.length;
+    if (wTotal === 0) return 0;
+    const wArrived = wLogs.filter((l) => l.status === 'normal' || l.status === 'late' || l.status === 'early').length;
+    return wArrived / wTotal;
+  });
+  const rate = rates.length > 0 ? Math.round((rates.reduce((a, b) => a + b, 0) / rates.length) * 100) : 0;
+
+  // 今日全队统计
+  const todayLogs = monthLogs.filter((l) => l.date === today);
+  const todayNormal = todayLogs.filter((l) => l.status === 'normal').length;
+  const todayLate = todayLogs.filter((l) => l.status === 'late').length;
+  const todayEarly = todayLogs.filter((l) => l.status === 'early').length;
+  const todayAbsent = todayLogs.filter((l) => l.status === 'absent').length;
+  const todayLeave = todayLogs.filter((l) => l.status === 'leave').length;
+  const todayCheckedIn = todayNormal + todayLate + todayEarly;
+  const todayAnomaly = todayLate + todayEarly + todayAbsent + todayLeave;
+
+  return { rate, todayCheckedIn, todayAnomaly, todayLate, todayEarly, todayAbsent, todayLeave, totalWorkers: workerIds.length };
+}
+
 export function Dashboard() {
   const { state, dispatch } = useApp();
   const isWorker = state.currentRole === 'worker';
   const today = new Date();
-  const stats = useWorkerStats(state.attendanceLogs, state.currentUser?.id ?? '');
+
+  const workerIds = state.workers.map((w) => w.id);
+  const personalStats = useWorkerStats(state.attendanceLogs, state.currentUser?.id ?? '');
+  const teamStats = useTeamStats(state.attendanceLogs, workerIds);
 
   const goTo = (page: Page) => dispatch({ type: 'SET_PAGE', payload: page });
 
@@ -40,12 +75,13 @@ export function Dashboard() {
   ];
 
   const managerCards = [
-    { icon: <Camera className="w-5 h-5" />, title: '考勤打卡', desc: '模拟工人日常打卡测试', iconBg: 'bg-lime-50', page: 'checkin' as Page },
-    { icon: <IdCard className="w-5 h-5" />, title: '注册信息', desc: '查看全工地工人实名制名册', iconBg: 'bg-zinc-100', page: 'registration' as Page },
+    { icon: <Camera className="w-5 h-5" />, title: '考勤打卡', desc: '工人日常打卡测试', iconBg: 'bg-lime-50', page: 'checkin' as Page },
+    { icon: <IdCard className="w-5 h-5" />, title: '注册信息', desc: '查看或修改个人实名制资料', iconBg: 'bg-zinc-100', page: 'registration' as Page },
     { icon: <BarChart3 className="w-5 h-5" />, title: '考勤数据统计', desc: '宏观可视化简报 + 全员考勤大总表', iconBg: 'bg-orange-50', page: 'manager' as Page },
   ];
 
   const cards = isWorker ? workerCards : managerCards;
+  const stats = isWorker ? personalStats : teamStats;
 
   return (
     <div className="p-4 space-y-4 pb-8">
@@ -60,7 +96,7 @@ export function Dashboard() {
         <h2 className="text-2xl font-black tracking-tight leading-tight">
           {isWorker
             ? `${state.currentUser?.name}，今天辛苦了！`
-            : '工地考勤数据总览'}
+            : '工地考勤数据统计'}
         </h2>
         <p className="text-[13px] font-medium text-lime-400 mt-2">
           {today.toLocaleDateString('zh-CN', {
@@ -71,15 +107,15 @@ export function Dashboard() {
 
       {/* ===== 中部：1:1 双列数据盘 ===== */}
       <div className="grid grid-cols-2 gap-3">
-        {/* 左：出勤率 + 黑色标签 */}
+        {/* 左：出勤率 + 环形图 */}
         <div className="bg-white rounded-3xl p-5 shadow-[0_4px_20px_rgb(0,0,0,0.03)]
-                        flex flex-col items-center text-center relative">
-          {/* 黑曜石标签 */}
-          <span className="bg-neutral-900 text-white rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wide mb-3">
-            {stats.todayStatus}
-          </span>
+                        flex flex-col items-center justify-center text-center relative">
+          {isWorker && (
+            <span className="bg-neutral-900 text-white rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wide mb-3">
+              {personalStats.todayStatus}
+            </span>
+          )}
 
-          {/* 环形图 */}
           <div
             className="ring-chart"
             style={{
@@ -90,17 +126,39 @@ export function Dashboard() {
               {stats.rate}%
             </span>
           </div>
-          <p className="text-[11px] text-industrial-700/50 font-medium mt-3">本月出勤率</p>
+          <p className="text-[13px] font-bold text-neutral-900 mt-3">
+            {isWorker ? '本月出勤率' : '全员本月出勤率'}
+          </p>
+          {!isWorker && (
+            <span className="bg-zinc-100 text-neutral-500 rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wide mt-3">
+              今日到岗 {teamStats.todayCheckedIn}/{teamStats.totalWorkers}
+            </span>
+          )}
         </div>
 
-        {/* 右：异常次数 */}
+        {/* 右：今日异常人数 */}
         <div className="bg-white rounded-3xl p-5 shadow-[0_4px_20px_rgb(0,0,0,0.03)]
                         flex flex-col items-center justify-center text-center">
-          <span className="text-4xl font-black text-orange-500 tabular-nums tracking-tight">
-            {stats.anomalyDays}
-          </span>
-          <span className="text-[11px] text-orange-500/70 font-medium mt-1">次异常</span>
-          <p className="text-[10px] text-zinc-400 mt-1">迟到/早退</p>
+          {isWorker ? (
+            <>
+              <span className="text-4xl font-black text-orange-500 tabular-nums tracking-tight">
+                {personalStats.anomalyDays}
+              </span>
+              <span className="text-[11px] text-orange-500/70 font-medium mt-1">次异常</span>
+              <p className="text-[13px] font-bold text-neutral-900 mt-1">迟到/早退</p>
+            </>
+          ) : (
+            <>
+              <span className="text-4xl font-black text-orange-500 tabular-nums tracking-tight">
+                {teamStats.todayAnomaly}
+              </span>
+              <span className="text-[11px] text-orange-500/70 font-medium mt-1">人</span>
+              <p className="text-[13px] font-bold text-neutral-900 mt-1">今日异常</p>
+              <p className="text-[10px] text-zinc-400 mt-1">
+                迟到{teamStats.todayLate} · 早退{teamStats.todayEarly} · 缺勤{teamStats.todayAbsent} · 请假{teamStats.todayLeave}
+              </p>
+            </>
+          )}
         </div>
       </div>
 
@@ -118,6 +176,16 @@ export function Dashboard() {
           />
         ))}
       </div>
+
+      {isWorker ? (
+        <p className="text-center text-[11px] text-zinc-300 font-medium mt-4">
+          「 致敬每一位城市建设者 」
+        </p>
+      ) : (
+        <p className="text-center text-[11px] text-zinc-300 font-medium mt-4">
+          「 管理的本质不是约束，而是保障大家的安全与权益 」
+        </p>
+      )}
     </div>
   );
 }
